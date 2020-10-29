@@ -716,10 +716,10 @@ function draw() {
 function showEndStats() {
   pathLengthEl = document.createElement("h3");
   pathTimeEl = document.createElement("h3");
-  durationEl = document.createElement("h4");
+  // durationEl = document.createElement("h4");
   pathLengthEl.innerText = `Path length: ${path.length - 1}`;
   pathTimeEl.innerText = `Path transit time: ${pathTime}`;
-  durationEl.innerText = `Duration: ${duration}ms`;
+  // durationEl.innerText = `Duration: ${duration}ms`;
   document.body.appendChild(pathLengthEl);
   document.body.appendChild(pathTimeEl);
   // document.body.appendChild(durationEl);
