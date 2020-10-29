@@ -54,6 +54,7 @@ document.addEventListener("keyup", handleKeyup);
 ////////// INPUT HANDLING //////////
 
 function handleMousedown(ev) {
+  if (running || done) return;
   mouseDown = true;
   mouseX = ev.clientX;
   mouseY = ev.clientY;
@@ -241,6 +242,14 @@ class GridGraph {
 
     this.start = this.getSquareByCoords(sx, sy).id;
     this.target = this.getSquareByCoords(tx, ty).id;
+  }
+
+  getStartSquare() {
+    return this.getSquare(this.start);
+  }
+
+  getTargetSquare() {
+    return this.getSquare(this.target);
   }
 
   clear() {
@@ -435,8 +444,8 @@ function runBFS() {
   }
   console.log("running breadth-first search...");
   running = true;
-  let startSquare = grid.getSquare(grid.start);
-  let endSquare = grid.getSquare(grid.target);
+  let startSquare = grid.getStartSquare();
+  // let endSquare = grid.getTargetSquare();
 
   let cameFrom = {};
 
@@ -445,6 +454,7 @@ function runBFS() {
 
   const loop = () => {
     let startTime = window.performance.now();
+    let endSquare = grid.getTargetSquare();
     let curr = frontier.get();
     let currId = curr.id;
 
@@ -477,6 +487,8 @@ function runBFS() {
   };
 
   const makePath = (found) => {
+    let startSquare = grid.getStartSquare();
+    let endSquare = grid.getTargetSquare();
     if (!found) {
       console.log(
         `No valid path from square ${startSquare.id} to square ${endSquare.id}`
@@ -513,8 +525,7 @@ function runAStar() {
   let open = new PriorityQueue();
   frontier = open;
 
-  let startSquare = grid.getSquare(grid.start);
-  let endSquare = grid.getSquare(grid.target);
+  let startSquare = grid.getStartSquare();
 
   startSquare.g = 0;
   startSquare.f = 0;
@@ -524,6 +535,7 @@ function runAStar() {
 
   const loop = () => {
     let startTime = window.performance.now();
+    let endSquare = grid.getTargetSquare();
     curr = open.extract();
     closed.set(curr, true);
     visited.push(curr.id);
@@ -572,7 +584,7 @@ function runAStar() {
   const makePath = () => {
     if (!found) {
       console.log(
-        `No valid path from square ${startSquare.id} to square ${endSquare.id}`
+        `No valid path from square ${grid.getStartSquare().id} to square ${grid.getTargetSquare().id}`
       );
       return;
     }
