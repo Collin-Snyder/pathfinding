@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pathfinding</title>
+    <link rel="stylesheet" type="text/css" href="main.css" />
+  </head>
+  <body>
+    <h1>Pathfinding Playground</h1>
+    <p>Click to drag start (green) and target (red) squares, or draw walls. Hold 's' to draw school zones.</p>
+    <div id="buttons">
+      <div id="buttons-container">
+        <button id="btn-bfs" onclick="runBFS()">BFS</button>
+        <button id="btn-astar" onclick="runAStar()">A*</button>
+        <button id="btn-reset" onclick="reset()">Reset</button>
+        <button id="btn-clear" onclick="clearGrid()">Clear</button>
+        <span>
+          <input
+            id="chkbx-schoolZone"
+            type="checkbox"
+            checked
+          /><label for="chkbx-schoolZone">Acknowledge School Zones (weight: 3x)</label>
+        </span>
+      </div>
+    </div>
+    <canvas id="grid"></canvas>
+    <canvas id="offscreen" style="display: none"></canvas>
+    <script src="./main.js"></script>
+  </body>
+</html>
