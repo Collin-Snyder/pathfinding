@@ -722,7 +722,7 @@ function showEndStats() {
   durationEl.innerText = `Duration: ${duration}ms`;
   document.body.appendChild(pathLengthEl);
   document.body.appendChild(pathTimeEl);
-  document.body.appendChild(durationEl);
+  // document.body.appendChild(durationEl);
 }
 
 function removeEndStats() {
