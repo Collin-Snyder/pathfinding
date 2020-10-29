@@ -12,13 +12,13 @@ let done = false;
 let speed = 7; //ms per loop
 let duration = 0;
 let pathTime = 0;
-let schoolZoneWeight = 3;
+let slowZoneWeight = 3;
 
 let mouseDown = false;
 let mouseX, mouseY;
 let dragging = false;
 let dragItem = null;
-let schoolZoneOn = false;
+let slowZoneOn = false;
 
 let grid;
 
@@ -30,7 +30,7 @@ const squareColors = {
   visited: "#b8f8ff",
   path: "#ffdf29",
   wall: "#383838",
-  schoolZone: "#de9d35",
+  slowZone: "#de9d35",
 };
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
   grid = new GridGraph(30);
   initGrid(grid.width, grid.height, grid.s);
   draw(grid);
+  document.getElementById("slow-zone-weight").textContent = "" + slowZoneWeight;
 });
 
 canvas.addEventListener("mousedown", handleMousedown);
@@ -63,8 +64,8 @@ function handleMousedown(ev) {
   if (grid.start == sq.id) dragItem = "start";
   else if (grid.target == sq.id) dragItem = "target";
   else {
-    if (schoolZoneOn) {
-      grid.toggleSchoolZone(sq.id);
+    if (slowZoneOn) {
+      grid.toggleSlowZone(sq.id);
     } else {
       grid.toggleWall(sq.id);
     }
@@ -90,11 +91,11 @@ function handleMousemove(ev) {
 }
 
 function handleKeydown(ev) {
-  if (ev.key === "s" && !schoolZoneOn) schoolZoneOn = true;
+  if (ev.key === "Shift" && !slowZoneOn) slowZoneOn = true;
 }
 
 function handleKeyup(ev) {
-  if (ev.key === "s" && schoolZoneOn) schoolZoneOn = false;
+  if (ev.key === "Shift" && slowZoneOn) slowZoneOn = false;
 }
 
 function handleDrag() {
@@ -102,8 +103,8 @@ function handleDrag() {
   if (dragItem && grid[dragItem] != sq.id) {
     grid[dragItem] = sq.id;
   } else {
-    if (schoolZoneOn) {
-      grid.toggleSchoolZone(sq.id, false);
+    if (slowZoneOn) {
+      grid.toggleSlowZone(sq.id, false);
     } else {
       grid.toggleWall(sq.id, false);
     }
@@ -122,7 +123,7 @@ class Square {
     this.x = x;
     this.y = y;
     this.walkable = true;
-    this.schoolZone = false;
+    this.slowZone = false;
     this.borders = { up: null, left: null, down: null, right: null };
     this.parent = null;
     this.g = Infinity;
@@ -141,7 +142,7 @@ class GridGraph {
     this.start = null;
     this.target = null;
     this.walls = {};
-    this.schoolZones = {};
+    this.slowZones = {};
     this.squares = [];
 
     this.makeSquares();
@@ -197,8 +198,8 @@ class GridGraph {
     if (id == this.start || id == this.target) return;
     if (sq.walkable) {
       sq.walkable = false;
-      sq.schoolZone = false;
-      if (this.schoolZones[id]) delete this.schoolZones[id];
+      sq.slowZone = false;
+      if (this.slowZones[id]) delete this.slowZones[id];
       this.walls[id] = true;
     } else if (allowToggleOff) {
       sq.walkable = true;
@@ -206,15 +207,15 @@ class GridGraph {
     }
   }
 
-  toggleSchoolZone(id, allowToggleOff = true) {
+  toggleSlowZone(id, allowToggleOff = true) {
     let sq = this.getSquare(id);
     if (id == this.start || id == this.target) return;
     if (sq.walkable) {
-      sq.schoolZone = true;
-      this.schoolZones[id] = true;
-    } else if (sq.schoolZone && allowToggleOff) {
-      sq.schoolZone = false;
-      if (this.schoolZones[id]) delete this.schoolZones[id];
+      sq.slowZone = true;
+      this.slowZones[id] = true;
+    } else if (sq.slowZone && allowToggleOff) {
+      sq.slowZone = false;
+      if (this.slowZones[id]) delete this.slowZones[id];
     }
   }
 
@@ -264,10 +265,10 @@ class GridGraph {
   clear() {
     for (let sq of this.squares) {
       sq.walkable = true;
-      sq.schoolZone = false;
+      sq.slowZone = false;
     }
     this.walls = {};
-    this.schoolZones = {};
+    this.slowZones = {};
   }
 }
 
@@ -621,13 +622,13 @@ function manhattan(x1, y1, x2, y2) {
 }
 
 function movementCost(sq1, sq2) {
-  if (acknowledgeSchoolZones()) {
-    return sq2.schoolZone ? schoolZoneWeight : 1;
+  if (acknowledgeSlowZones()) {
+    return sq2.slowZone ? slowZoneWeight : 1;
   } else return 1;
 }
 
-function acknowledgeSchoolZones() {
-  return document.getElementById("chkbx-schoolZone").checked;
+function acknowledgeSlowZones() {
+  return document.getElementById("chkbx-slowZone").checked;
 }
 
 ////////// DRAWING AND RENDERING //////////
@@ -661,7 +662,7 @@ function drawSquare(c, x, y, d, type) {
     c.strokeStyle = gridColor;
     c.stroke();
   } else {
-    c.clearRect(x, y, d, d);
+    // c.clearRect(x, y, d, d);
     c.fillStyle = squareColors[type];
     c.fillRect(x, y, d, d);
   }
@@ -688,47 +689,53 @@ function drawWalls() {
   }
 }
 
-function drawSchoolZones() {
-  for (let id in grid.schoolZones) {
+function drawSlowZones() {
+  for (let id in grid.slowZones) {
     let s = grid.getSquare(id);
-    drawSquare(ctx, s.x, s.y, s.width, "schoolZone");
+    drawSquare(ctx, s.x, s.y, s.width, "slowZone");
   }
 }
 
 function drawVisited() {
+  ctx.save();
+  ctx.globalAlpha = 0.5;
   visited.forEach((id) => {
     let s = grid.getSquare(id);
     drawSquare(ctx, s.x, s.y, s.width, "visited");
   });
+  ctx.restore();
 }
 
 function drawFrontier() {
+  ctx.save();
+  ctx.globalAlpha = 0.8;
   frontier.each((s) => {
     drawSquare(ctx, s.x, s.y, s.width, "frontier");
   });
+  ctx.restore();
 }
 
 function drawPath() {
+  ctx.save();
+  ctx.globalAlpha = 0.75;
   path.forEach((id) => {
     let s = grid.getSquare(id);
     if (s) drawSquare(ctx, s.x, s.y, s.width, "path");
   });
+  ctx.restore();
 }
 
 function draw() {
   if (!loaded) return;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+  drawSlowZones();
   if (running) {
     drawVisited();
-    drawSchoolZones();
     drawFrontier();
     if (done) {
       drawPath();
     }
-  } else {
-    drawSchoolZones();
   }
   drawWalls();
   drawStart();

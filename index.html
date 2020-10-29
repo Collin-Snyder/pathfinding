@@ -5,24 +5,33 @@
     <link rel="stylesheet" type="text/css" href="main.css" />
   </head>
   <body>
-    <h1>Pathfinding Playground</h1>
-    <p>Click to drag start (green) and target (red) squares, or draw walls. Hold 's' to draw school zones.</p>
-    <div id="buttons">
-      <div id="buttons-container">
-        <button id="btn-bfs" onclick="runBFS()">Run Breadth-First Search</button>
-        <button id="btn-astar" onclick="runAStar()">Run A*</button>
-        <button id="btn-reset" onclick="reset()">Reset</button>
-        <button id="btn-clear" onclick="clearGrid()">Clear</button>
-        <span>
-          <input
-            id="chkbx-schoolZone"
-            type="checkbox"
-            checked
-          /><label for="chkbx-schoolZone">Acknowledge School Zones (A* Only)</label>
-        </span>
+    <div id="header">
+      <h1>Pathfinding Playground</h1>
+      <p>
+        Click to drag start (green) and target (red) squares, or draw walls.
+      </p>
+      <p>
+        Hold Shift to draw slow zones (slows movement by
+        <span id="slow-zone-weight">3</span>x)
+      </p>
+      <div id="buttons">
+        <div id="buttons-container">
+          <button id="btn-bfs" onclick="runBFS()">
+            Run Breadth-First Search
+          </button>
+          <button id="btn-astar" onclick="runAStar()">Run A*</button>
+          <span>
+            <input id="chkbx-slowZone" type="checkbox" checked /><label
+              for="chkbx-slowZone"
+              >Acknowledge Slow Zones (A* Only)</label
+            >
+          </span>
+          <button id="btn-reset" onclick="reset()">Reset</button>
+          <button id="btn-clear" onclick="clearGrid()">Clear</button>
+        </div>
       </div>
     </div>
-    <canvas id="grid"></canvas> 
+    <canvas id="grid"></canvas>
     <canvas id="offscreen" style="display: none"></canvas>
     <script src="./main.js"></script>
   </body>
