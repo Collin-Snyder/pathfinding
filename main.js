@@ -12,6 +12,7 @@ let done = false;
 let speed = 7; //ms per loop
 let duration = 0;
 let pathTime = 0;
+let schoolZoneWeight = 3;
 
 let mouseDown = false;
 let mouseX, mouseY;
@@ -598,7 +599,7 @@ function manhattan(x1, y1, x2, y2) {
 
 function movementCost(sq1, sq2) {
   if (acknowledgeSchoolZones()) {
-    return sq2.schoolZone ? 3 : 1;
+    return sq2.schoolZone ? schoolZoneWeight : 1;
   } else return 1;
 }
 
