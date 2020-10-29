@@ -30,7 +30,7 @@ const squareColors = {
   visited: "#b8f8ff",
   path: "#ffdf29",
   wall: "#383838",
-  schoolZone: "#de9d35"
+  schoolZone: "#de9d35",
 };
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -64,7 +64,7 @@ function handleMousedown(ev) {
   else if (grid.target == sq.id) dragItem = "target";
   else {
     if (schoolZoneOn) {
-      grid.toggleSchoolZone(sq.id)
+      grid.toggleSchoolZone(sq.id);
     } else {
       grid.toggleWall(sq.id);
     }
@@ -103,7 +103,7 @@ function handleDrag() {
     grid[dragItem] = sq.id;
   } else {
     if (schoolZoneOn) {
-      grid.toggleSchoolZone(sq.id, false)
+      grid.toggleSchoolZone(sq.id, false);
     } else {
       grid.toggleWall(sq.id, false);
     }
@@ -250,6 +250,15 @@ class GridGraph {
 
   getTargetSquare() {
     return this.getSquare(this.target);
+  }
+
+  reset() {
+    for (let sq of this.squares) {
+      sq.parent = null;
+      sq.g = Infinity;
+      sq.h = 0;
+      sq.f = 0;
+    }
   }
 
   clear() {
@@ -498,7 +507,7 @@ function runBFS() {
     let current = endSquare;
     while (current.id !== startSquare.id) {
       path.push(current.id);
-      pathTime += movementCost(null, current)
+      pathTime += movementCost(null, current);
       current = grid.getSquare(cameFrom[current.id]);
     }
     path.push([startSquare.x, startSquare.y]);
@@ -513,8 +522,6 @@ function runBFS() {
 function runAStar() {
   if (!loaded) return;
   if (running || done) {
-    running = false;
-    done = false;
     reset();
   }
   console.log("running A*...");
@@ -563,7 +570,9 @@ function runAStar() {
 
       if (!inOpen || ng < neighbor.g) {
         neighbor.g = ng;
-        neighbor.h = neighbor.h || manhattan(neighbor.x, neighbor.y, endSquare.x, endSquare.y);
+        neighbor.h =
+          neighbor.h ||
+          manhattan(neighbor.x, neighbor.y, endSquare.x, endSquare.y);
         neighbor.f = neighbor.g + neighbor.h;
         neighbor.parent = curr;
 
@@ -584,13 +593,15 @@ function runAStar() {
   const makePath = () => {
     if (!found) {
       console.log(
-        `No valid path from square ${grid.getStartSquare().id} to square ${grid.getTargetSquare().id}`
+        `No valid path from square ${grid.getStartSquare().id} to square ${
+          grid.getTargetSquare().id
+        }`
       );
       return;
     }
-    while (curr.parent) {
+    while (curr.parent && curr.id != grid.start) {
       path.push(curr.id);
-      pathTime += movementCost(null, curr)
+      pathTime += movementCost(null, curr);
       curr = curr.parent;
     }
     path.push(curr.id);
@@ -708,7 +719,7 @@ function draw() {
   if (!loaded) return;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
   if (running) {
     drawVisited();
     drawSchoolZones();
@@ -757,6 +768,7 @@ function reset() {
   frontier = new Queue();
   visited = [];
   path = [];
+  grid.reset();
   draw();
   removeEndStats();
 }
