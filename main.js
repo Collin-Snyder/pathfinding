@@ -9,6 +9,7 @@ let pathLengthEl, durationEl, pathTimeEl;
 let loaded = false;
 let running = false;
 let done = false;
+let noPath = false;
 let speed = 7; //ms per loop
 let duration = 0;
 let pathTime = 0;
@@ -31,6 +32,7 @@ const squareColors = {
   path: "#ffdf29",
   wall: "#383838",
   slowZone: "#de9d35",
+  noPath: "#de2c2c",
 };
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -42,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
   canvasOS.height = canvas.height;
   grid = new GridGraph(30);
   initGrid(grid.width, grid.height, grid.s);
-  draw(grid);
+  draw();
   document.getElementById("slow-zone-weight").textContent = "" + slowZoneWeight;
 });
 
@@ -51,6 +53,7 @@ canvas.addEventListener("mouseup", handleMouseup);
 canvas.addEventListener("mousemove", handleMousemove);
 document.addEventListener("keydown", handleKeydown);
 document.addEventListener("keyup", handleKeyup);
+window.onresize = handleResize;
 
 ////////// INPUT HANDLING //////////
 
@@ -64,7 +67,7 @@ function handleMousedown(ev) {
   if (grid.start == sq.id) dragItem = "start";
   else if (grid.target == sq.id) dragItem = "target";
   else {
-    if (slowZoneOn) {
+    if (slowZoneOn || grid.getSquare(sq.id).slowZone) {
       grid.toggleSlowZone(sq.id);
     } else {
       grid.toggleWall(sq.id);
@@ -113,15 +116,35 @@ function handleDrag() {
   //if not, toggle wall on each new square, passing false as 2nd arg
 }
 
+function handleResize(ev) {
+  //update main canvas to match window size
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  //update canvasOS to match main canvas size
+  canvasOS.width = canvas.width;
+  canvasOS.height = canvas.height;
+  //update grid size to match window size
+  reset();
+  grid.resize();
+  visited = visited.map((vId) => grid.migrateSquare(grid.getSquare(vId)));
+  path = path.map((pId) => grid.migrateSquare(grid.getSquare(pId)));
+  //run initGrid with new w/h
+  initGrid(grid.width, grid.height, grid.s);
+  //draw grid
+  draw();
+}
+
 ////////// DATA STRUCTURES //////////
 
 class Square {
-  constructor(id, x, y, dim) {
+  constructor(id, x, y, row, col, dim) {
     this.id = id;
     this.width = dim;
     this.height = dim;
     this.x = x;
     this.y = y;
+    this.row = row;
+    this.col = col;
     this.walkable = true;
     this.slowZone = false;
     this.borders = { up: null, left: null, down: null, right: null };
@@ -159,7 +182,7 @@ class GridGraph {
           : this.widthInSquares;
       let x = (col - 1) * this.s;
       let y = (row - 1) * this.s;
-      this.squares.push(new Square(id, x, y, this.s));
+      this.squares.push(new Square(id, x, y, row, col, this.s));
     }
   }
 
@@ -210,7 +233,7 @@ class GridGraph {
   toggleSlowZone(id, allowToggleOff = true) {
     let sq = this.getSquare(id);
     if (id == this.start || id == this.target) return;
-    if (sq.walkable) {
+    if (sq.walkable && !sq.slowZone) {
       sq.slowZone = true;
       this.slowZones[id] = true;
     } else if (sq.slowZone && allowToggleOff) {
@@ -241,8 +264,17 @@ class GridGraph {
     let tx = Math.ceil((this.width / 4) * 3);
     let ty = sy;
 
-    this.start = this.getSquareByCoords(sx, sy).id;
-    this.target = this.getSquareByCoords(tx, ty).id;
+    let newStart = this.getSquareByCoords(sx, sy);
+    let newTarget = this.getSquareByCoords(tx, ty);
+
+    if (!newStart.walkable) this.toggleWall(newStart.id);
+    if (newStart.slowZone) this.toggleSlowZone(newStart.id);
+    if (!newTarget.walkable) this.toggleWall(newTarget.id);
+    if (newTarget.slowZone) this.toggleSlowZone(newTarget.id);
+    if (newStart === newTarget) newTarget = this.getSquare(newTarget.id + 1);
+
+    this.start = newStart.id;
+    this.target = newTarget.id;
   }
 
   getStartSquare() {
@@ -269,6 +301,50 @@ class GridGraph {
     }
     this.walls = {};
     this.slowZones = {};
+  }
+
+  resize() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.widthInSquares = Math.ceil(this.width / this.s);
+    this.heightInSquares = Math.ceil(this.height / this.s);
+    let squares = this.squares;
+    let startSq = this.getSquare(this.start);
+    let targetSq = this.getSquare(this.target);
+    this.squares = [];
+    this.walls = {};
+    this.slowZones = {};
+    this.makeSquares();
+    this.addBorders();
+    this.start = this.migrateSquare(startSq);
+    this.target = this.migrateSquare(targetSq);
+    if (!this.start || !this.target) this.initStartAndTarget();
+    this.migrateSquares(squares);
+  }
+
+  migrateSquare(sq) {
+    if (sq.col > this.widthInSquares || sq.row > this.heightInSquares)
+      return null;
+    let newId = sq.col + (sq.row - 1) * this.widthInSquares;
+    let { walkable, slowZone, parent, g, h, f } = sq;
+    let newSq = this.getSquare(newId);
+    if (!newSq) return null;
+    newSq.walkable = walkable;
+    newSq.slowZone = slowZone;
+    newSq.parent = parent;
+    newSq.g = g;
+    newSq.h = h;
+    newSq.f = f;
+    return newId;
+  }
+
+  migrateSquares(oldSquares) {
+    for (let sq of oldSquares) {
+      let id = this.migrateSquare(sq);
+      if (!id) continue;
+      if (!sq.walkable) this.walls[id] = true;
+      if (sq.slowZone) this.slowZones[id] = true;
+    }
   }
 }
 
@@ -503,6 +579,8 @@ function runBFS() {
       console.log(
         `No valid path from square ${startSquare.id} to square ${endSquare.id}`
       );
+      noPath = true;
+      draw();
       return;
     }
     let current = endSquare;
@@ -550,7 +628,7 @@ function runAStar() {
 
     if (curr.id == endSquare.id) {
       found = true;
-      makePath();
+      makePath(true);
       let endTime = window.performance.now();
       duration += endTime - startTime;
       return;
@@ -586,18 +664,24 @@ function runAStar() {
     }
     let endTime = window.performance.now();
     duration += endTime - startTime;
-    if (open.size <= 0) return;
+    if (open.size <= 0) {
+      makePath(false);
+      return;
+    }
+
     setTimeout(loop, speed);
     draw();
   };
 
-  const makePath = () => {
+  const makePath = (found) => {
     if (!found) {
       console.log(
         `No valid path from square ${grid.getStartSquare().id} to square ${
           grid.getTargetSquare().id
         }`
       );
+      noPath = true;
+      draw();
       return;
     }
     while (curr.parent && curr.id != grid.start) {
@@ -701,7 +785,7 @@ function drawVisited() {
   ctx.globalAlpha = 0.5;
   visited.forEach((id) => {
     let s = grid.getSquare(id);
-    drawSquare(ctx, s.x, s.y, s.width, "visited");
+    drawSquare(ctx, s.x, s.y, s.width, noPath ? "noPath" : "visited");
   });
   ctx.restore();
 }
@@ -772,6 +856,7 @@ function reset() {
   console.log("resetting visualization...");
   running = false;
   done = false;
+  noPath = false;
   frontier = new Queue();
   visited = [];
   path = [];
@@ -786,5 +871,3 @@ function clearGrid() {
   grid.clear();
   draw();
 }
-
-window.onresize = function () {};
