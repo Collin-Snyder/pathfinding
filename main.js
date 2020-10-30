@@ -10,7 +10,7 @@ let loaded = false;
 let running = false;
 let done = false;
 let noPath = false;
-let speed = 7; //ms per loop
+let speed = 5; //ms per loop
 let duration = 0;
 let pathTime = 0;
 let slowZoneWeight = 3;
@@ -218,8 +218,8 @@ class GridGraph {
 
   toggleWall(id, allowToggleOff = true) {
     let sq = this.getSquare(id);
-    if (id == this.start || id == this.target) return;
-    if (sq.walkable) {
+    // if (id == this.start || id == this.target) return;
+    if (sq.walkable && id != this.start && id != this.target) {
       sq.walkable = false;
       sq.slowZone = false;
       if (this.slowZones[id]) delete this.slowZones[id];
@@ -232,13 +232,13 @@ class GridGraph {
 
   toggleSlowZone(id, allowToggleOff = true) {
     let sq = this.getSquare(id);
-    if (id == this.start || id == this.target) return;
-    if (sq.walkable && !sq.slowZone) {
+    // if (id == this.start || id == this.target) return;
+    if (sq.walkable && !sq.slowZone && id != this.start && id != this.target) {
       sq.slowZone = true;
       this.slowZones[id] = true;
     } else if (sq.slowZone && allowToggleOff) {
       sq.slowZone = false;
-      if (this.slowZones[id]) delete this.slowZones[id];
+      delete this.slowZones[id];
     }
   }
 
