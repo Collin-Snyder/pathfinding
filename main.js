@@ -539,6 +539,7 @@ function runBFS() {
   cameFrom[startSquare.id] = null;
 
   const loop = () => {
+    if (!running) return;
     let startTime = window.performance.now();
     let endSquare = grid.getTargetSquare();
     let curr = frontier.get();
@@ -620,6 +621,7 @@ function runAStar() {
   let curr;
 
   const loop = () => {
+    if (!running) return;
     let startTime = window.performance.now();
     let endSquare = grid.getTargetSquare();
     curr = open.extract();
