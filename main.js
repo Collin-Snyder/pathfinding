@@ -1,4 +1,4 @@
-const { abs } = Math;
+const { abs, floor, ceil } = Math;
 
 const canvas = document.getElementById("grid");
 const ctx = canvas.getContext("2d");
@@ -10,10 +10,10 @@ let loaded = false;
 let running = false;
 let done = false;
 let noPath = false;
-let speed = 5; //ms per loop
+const speed = 5; //ms per loop
+const slowZoneWeight = 3;
 let duration = 0;
 let pathTime = 0;
-let slowZoneWeight = 3;
 
 let mouseDown = false;
 let mouseX, mouseY;
@@ -112,25 +112,18 @@ function handleDrag() {
       grid.toggleWall(sq.id, false);
     }
   }
-  //if drag item, update start/target in grid when passing over new square
-  //if not, toggle wall on each new square, passing false as 2nd arg
 }
 
 function handleResize(ev) {
-  //update main canvas to match window size
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  //update canvasOS to match main canvas size
   canvasOS.width = canvas.width;
   canvasOS.height = canvas.height;
-  //update grid size to match window size
   reset();
   grid.resize();
   visited = visited.map((vId) => grid.migrateSquare(grid.getSquare(vId)));
   path = path.map((pId) => grid.migrateSquare(grid.getSquare(pId)));
-  //run initGrid with new w/h
   initGrid(grid.width, grid.height, grid.s);
-  //draw grid
   draw();
 }
 
@@ -159,9 +152,9 @@ class GridGraph {
   constructor(sw) {
     this.s = sw || 30;
     this.width = window.innerWidth;
-    this.widthInSquares = Math.ceil(this.width / this.s);
+    this.widthInSquares = ceil(this.width / this.s);
     this.height = window.innerHeight;
-    this.heightInSquares = Math.ceil(this.height / this.s);
+    this.heightInSquares = ceil(this.height / this.s);
     this.start = null;
     this.target = null;
     this.walls = {};
@@ -175,10 +168,10 @@ class GridGraph {
 
   makeSquares() {
     for (let id = 1; id < this.widthInSquares * this.heightInSquares; id++) {
-      let row = Math.ceil(id / this.widthInSquares);
+      let row = ceil(id / this.widthInSquares);
       let col =
-        Math.floor(id % this.widthInSquares) > 0
-          ? Math.floor(id % this.widthInSquares)
+        floor(id % this.widthInSquares) > 0
+          ? floor(id % this.widthInSquares)
           : this.widthInSquares;
       let x = (col - 1) * this.s;
       let y = (row - 1) * this.s;
@@ -201,18 +194,6 @@ class GridGraph {
 
       if (id + this.widthInSquares <= this.squares.length)
         square.borders.down = this.squares[id + this.widthInSquares - 1];
-    }
-  }
-
-  toggleWallCoords(x, y, allowToggleOff = true) {
-    let sq = this.getSquareByCoords(x, y);
-    if (sq.id == this.start || sq.id == this.target) return;
-    if (sq.walkable) {
-      sq.walkable = false;
-      this.walls[sq.id] = true;
-    } else if (allowToggleOff) {
-      sq.walkable = true;
-      delete this.walls[sq.id];
     }
   }
 
@@ -243,8 +224,8 @@ class GridGraph {
   }
 
   getSquareByCoords(x, y) {
-    let X = Math.floor(x / this.s) * this.s;
-    let Y = Math.floor(y / this.s) * this.s;
+    let X = floor(x / this.s) * this.s;
+    let Y = floor(y / this.s) * this.s;
     let row = Y / this.s;
     let col = X / this.s + 1;
     let id = row * this.widthInSquares + col;
@@ -259,9 +240,9 @@ class GridGraph {
   initStartAndTarget() {
     //start is halfway down, 1/4 across
     //target is halfway down, 3/4 across
-    let sx = Math.floor(this.width / 4);
-    let sy = Math.floor(this.height / 2);
-    let tx = Math.ceil((this.width / 4) * 3);
+    let sx = floor(this.width / 4);
+    let sy = floor(this.height / 2);
+    let tx = ceil((this.width / 4) * 3);
     let ty = sy;
 
     let newStart = this.getSquareByCoords(sx, sy);
@@ -306,8 +287,8 @@ class GridGraph {
   resize() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
-    this.widthInSquares = Math.ceil(this.width / this.s);
-    this.heightInSquares = Math.ceil(this.height / this.s);
+    this.widthInSquares = ceil(this.width / this.s);
+    this.heightInSquares = ceil(this.height / this.s);
     let squares = this.squares;
     let startSq = this.getSquare(this.start);
     let targetSq = this.getSquare(this.target);
@@ -400,14 +381,14 @@ class PriorityQueue {
     this.heap.push(sq);
     this.storage.set(sq, true);
     let idx = this.heap.length - 1;
-    let pIdx = Math.floor(idx / 2);
+    let pIdx = floor(idx / 2);
 
     while (this.heap[pIdx] && sq.f < this.heap[pIdx].f) {
       let oldP = this.heap[pIdx];
       this.heap[pIdx] = sq;
       this.heap[idx] = oldP;
       idx = pIdx;
-      pIdx = Math.floor(idx / 2);
+      pIdx = floor(idx / 2);
     }
   }
 
@@ -431,31 +412,6 @@ class PriorityQueue {
     }
     this.storage.delete(root);
     return root;
-  }
-
-  insertThenExtract(sq) {
-    if (!this.heap[1] || sq.f < this.heap[1].f) return sq;
-
-    const root = this.heap[1];
-    this.heap[1] = sq;
-
-    let idx = 1;
-    let childIdx = this.getChildIndex(1);
-
-    while (this.heap[childIdx] && this.heap[idx].f >= this.heap[childIdx].f) {
-      let oldC = this.heap[childIdx];
-      this.heap[childIdx] = tail;
-      this.heap[idx] = oldC;
-      idx = childIdx;
-      childIdx = this.getChildIndex(idx);
-    }
-
-    return root;
-  }
-
-  insertThenPeek(sq) {
-    this.insert(sq);
-    return this.peek();
   }
 
   peek() {
@@ -523,18 +479,13 @@ let path = [];
 
 function runBFS() {
   if (!loaded) return;
-  if (running || done) {
-    running = false;
-    done = false;
-    this.reset();
-  }
+  if (running || done) this.reset();
+
   console.log("running breadth-first search...");
   running = true;
+
   let startSquare = grid.getStartSquare();
-  // let endSquare = grid.getTargetSquare();
-
   let cameFrom = {};
-
   frontier.put(startSquare);
   cameFrom[startSquare.id] = null;
 
@@ -601,9 +552,8 @@ function runBFS() {
 
 function runAStar() {
   if (!loaded) return;
-  if (running || done) {
-    reset();
-  }
+  if (running || done) reset();
+
   console.log("running A*...");
   running = true;
 
@@ -710,7 +660,8 @@ function manhattan(x1, y1, x2, y2) {
 function movementCost(sq1, sq2) {
   if (acknowledgeSlowZones()) {
     return sq2.slowZone ? slowZoneWeight : 1;
-  } else return 1;
+  }
+  return 1;
 }
 
 function acknowledgeSlowZones() {
@@ -720,11 +671,12 @@ function acknowledgeSlowZones() {
 ////////// DRAWING AND RENDERING //////////
 
 function initGrid(w, h, sw) {
-  //draw empty grid onto canvas of size w x h with square size sw
+  //draw empty grid onto offscreem canvas of size w x h with square size sw
   ctxOS.save();
   ctxOS.globalAlpha = 0;
   ctxOS.fillRect(0, 0, canvasOS.width, canvasOS.height);
   ctxOS.restore();
+
   let x = 0;
   let y = 0;
 
@@ -748,7 +700,6 @@ function drawSquare(c, x, y, d, type) {
     c.strokeStyle = gridColor;
     c.stroke();
   } else {
-    // c.clearRect(x, y, d, d);
     c.fillStyle = squareColors[type];
     c.fillRect(x, y, d, d);
   }
@@ -863,8 +814,8 @@ function reset() {
   visited = [];
   path = [];
   grid.reset();
-  draw();
   removeEndStats();
+  draw();
 }
 
 function clearGrid() {
